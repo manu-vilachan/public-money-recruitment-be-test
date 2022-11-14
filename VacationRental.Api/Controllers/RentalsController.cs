@@ -1,43 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
+using VacationRental.Core.Contracts;
 
-namespace VacationRental.Api.Controllers
+namespace VacationRental.Api.Controllers;
+
+[Route("api/v1/rentals")]
+[ApiController]
+public class RentalsController : ControllerBase
 {
-    [Route("api/v1/rentals")]
-    [ApiController]
-    public class RentalsController : ControllerBase
+    private readonly IRentalManager rentalManager;
+    private readonly IMapper mapper;
+
+    public RentalsController(IRentalManager rentalManager, IMapper mapper)
     {
-        private readonly IDictionary<int, RentalViewModel> _rentals;
+        this.rentalManager = rentalManager;
+        this.mapper = mapper;
+    }
 
-        public RentalsController(IDictionary<int, RentalViewModel> rentals)
-        {
-            _rentals = rentals;
-        }
+    [HttpGet]
+    [Route("{rentalId:int}")]
+    public async Task<RentalViewModel> Get(int rentalId)
+    {
+        var rental = await rentalManager.GetAsync(rentalId);
+        if (rental == null)
+            throw new ApplicationException("Rental not found");
 
-        [HttpGet]
-        [Route("{rentalId:int}")]
-        public RentalViewModel Get(int rentalId)
-        {
-            if (!_rentals.ContainsKey(rentalId))
-                throw new ApplicationException("Rental not found");
+        return mapper.Map<RentalViewModel>(rental);
+    }
 
-            return _rentals[rentalId];
-        }
+    [HttpPost]
+    public async Task<ResourceIdViewModel> Post(RentalBindingModel model)
+    {
+        var rental = await rentalManager.CreateAsync(model.Units, 0);
 
-        [HttpPost]
-        public ResourceIdViewModel Post(RentalBindingModel model)
-        {
-            var key = new ResourceIdViewModel { Id = _rentals.Keys.Count + 1 };
-
-            _rentals.Add(key.Id, new RentalViewModel
-            {
-                Id = key.Id,
-                Units = model.Units
-            });
-
-            return key;
-        }
+        return mapper.Map<ResourceIdViewModel>(rental);
     }
 }

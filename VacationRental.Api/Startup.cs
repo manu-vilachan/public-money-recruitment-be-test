@@ -1,11 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using AutoMapper.EquivalencyExpression;
+using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using VacationRental.Api.Models;
+using VacationRental.Business;
+using VacationRental.Core.Contracts;
+using VacationRental.Data;
 
 namespace VacationRental.Api;
 
@@ -21,12 +25,21 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddMvc();
+        services.AddMvcCore();
 
         services.AddSwaggerGen(opts => opts.SwaggerDoc("v1", new OpenApiInfo { Title = "Vacation rental information", Version = "v1" }));
 
-        services.AddSingleton<IDictionary<int, RentalViewModel>>(new Dictionary<int, RentalViewModel>());
-        services.AddSingleton<IDictionary<int, BookingViewModel>>(new Dictionary<int, BookingViewModel>());
+        services.AddDbContext<VacationRentalDbContext>(builder => builder
+            .UseInMemoryDatabase("VacationRental")
+            .UseLazyLoadingProxies()); //I use lazy loading just for convenience in this testing project. Further analysis should be done in case of a real scenario.
+
+        services.AddTransient<IBookingManager, BookingManager>();
+        services.AddTransient<IRentalManager, RentalManager>();
+
+        services.AddAutoMapper(cfg => cfg.AddCollectionMappers(), typeof(Startup).Assembly);
+        services.AddValidatorsFromAssembly(typeof(Startup).Assembly);
+
+        // It would be very convenient to configure Authentication, and Authorization if needed.
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
