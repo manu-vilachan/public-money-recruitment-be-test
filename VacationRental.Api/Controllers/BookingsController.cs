@@ -32,6 +32,8 @@ public class BookingsController : ControllerBase
         if (booking == null)
             throw new ApplicationException("Booking not found");
 
+        var kk = Problem();
+
         return mapper.Map<BookingViewModel>(booking);
     }
 

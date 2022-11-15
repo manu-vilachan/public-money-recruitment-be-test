@@ -19,28 +19,38 @@ public class BookingManager : IBookingManager
         if (rental == null)
             throw new ApplicationException("Rental not found");
 
-        for (var i = 0; i < nights; i++)
+        Unit? freeUnitForBooking = null;
+        foreach (var unit in rental.Units)
         {
-            var count = 0;
-            foreach (var booking in rental.Bookings)
+            bool isFree = true;
+            foreach (var booking in (unit.Bookings ?? new List<Booking>()))
             {
-                if ((booking.StartDate <= startDate.Date && booking.StartDate.AddDays(booking.Nights) > startDate.Date)
-                    || (booking.StartDate < startDate.AddDays(nights) && booking.StartDate.AddDays(booking.Nights) >= startDate.AddDays(nights))
-                    || (booking.StartDate > startDate && booking.StartDate.AddDays(booking.Nights) < startDate.AddDays(nights)))
+                var bookingTotalDays = booking.Nights + rental.PreparationTime;
+                if ((booking.StartDate <= startDate.Date && booking.StartDate.AddDays(bookingTotalDays) > startDate.Date)
+                    || (booking.StartDate < startDate.AddDays(nights) && booking.StartDate.AddDays(bookingTotalDays) >= startDate.AddDays(nights))
+                    || (booking.StartDate > startDate && booking.StartDate.AddDays(bookingTotalDays) < startDate.AddDays(nights)))
                 {
-                    count++;
+                    isFree = false;
+                    break;
                 }
             }
 
-            if (count >= rental.Units)
-                throw new ApplicationException("Not available");
+            if (isFree)
+            {
+                freeUnitForBooking = unit;
+                break;
+            }
         }
+
+        if (freeUnitForBooking == null)
+            throw new ApplicationException("Not available");
 
         var newBooking = new Booking
         {
             Rental = rental,
             Nights = nights,
-            StartDate = startDate
+            StartDate = startDate,
+            Unit = freeUnitForBooking
         };
 
         await db.Bookings.AddAsync(newBooking, cancellationToken);

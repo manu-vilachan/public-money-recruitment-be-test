@@ -10,6 +10,7 @@ public class BookingViewModelProfile : Profile
     {
         CreateMap<Booking, BookingViewModel>()
             .ForMember(m => m.RentalId, exp => exp.MapFrom(b => b.Rental.Id))
-            .ForMember(m => m.Start, exp => exp.MapFrom(b => b.StartDate));
+            .ForMember(m => m.Start, exp => exp.MapFrom(b => b.StartDate))
+            .ForMember(m => m.Unit, exp => exp.MapFrom(b => b.Unit.UnitNumber));
     }
 }

@@ -15,7 +15,19 @@ public class RentalManager : IRentalManager
 
     public async Task<Rental> CreateAsync(int units, int preparationTime, CancellationToken cancellationToken = default)
     {
-        var entry = await db.Rentals.AddAsync(new Rental { Units = units }, cancellationToken).AsTask();
+        if (units <= 0)
+            throw new ApplicationException("Units should be greater than 0");
+        
+        if (preparationTime < 0)
+            throw new ApplicationException("Preparation time cannot be a negative number");
+
+        var postEntity = new Rental { Units = new List<Unit>(), PreparationTime = preparationTime };
+        for (int i = 1; i <= units; i++)
+        {
+            postEntity.Units.Add(new Unit { UnitNumber = i });
+        }
+
+        var entry = await db.Rentals.AddAsync(postEntity, cancellationToken).AsTask();
         await db.SaveChangesAsync(cancellationToken);
 
         return entry.Entity;
@@ -42,14 +54,21 @@ public class RentalManager : IRentalManager
             var date = new CalendarDay()
             {
                 Date = startDate.Date.AddDays(i),
-                Bookings = new List<Booking>()
+                Bookings = new List<Booking>(),
+                PreparationTimes = new List<Unit>()
             };
 
             foreach (var booking in rental.Bookings)
             {
-                if (booking.StartDate <= date.Date && booking.StartDate.AddDays(booking.Nights) > date.Date)
+                if (booking.StartDate <= date.Date && date.Date < booking.StartDate.AddDays(booking.Nights))
                 {
                     date.Bookings.Add(booking);
+                }
+
+                if (booking.StartDate.AddDays(booking.Nights) <= date.Date
+                    && date.Date < booking.StartDate.AddDays(booking.Nights + rental.PreparationTime))
+                {
+                    date.PreparationTimes.Add(booking.Unit);
                 }
             }
 

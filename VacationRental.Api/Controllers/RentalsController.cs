@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using VacationRental.Api.Models;
 using VacationRental.Core.Contracts;
 
@@ -13,11 +14,13 @@ public class RentalsController : ControllerBase
 {
     private readonly IRentalManager rentalManager;
     private readonly IMapper mapper;
+    private readonly GlobalConfiguration globalConfig;
 
-    public RentalsController(IRentalManager rentalManager, IMapper mapper)
+    public RentalsController(IRentalManager rentalManager, IMapper mapper, IOptions<GlobalConfiguration> globalConfig)
     {
         this.rentalManager = rentalManager;
         this.mapper = mapper;
+        this.globalConfig = globalConfig.Value;
     }
 
     [HttpGet]
@@ -34,7 +37,9 @@ public class RentalsController : ControllerBase
     [HttpPost]
     public async Task<ResourceIdViewModel> Post(RentalBindingModel model)
     {
-        var rental = await rentalManager.CreateAsync(model.Units, 0);
+        model.PreparationTimeInDays ??= globalConfig.DefaultPreparationTime;
+
+        var rental = await rentalManager.CreateAsync(model.Units, model.PreparationTimeInDays.Value);
 
         return mapper.Map<ResourceIdViewModel>(rental);
     }

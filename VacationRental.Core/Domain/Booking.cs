@@ -9,4 +9,6 @@ public class Booking
     public int Nights { get; set; }
 
     public virtual Rental Rental { get; set; }
+
+    public virtual Unit Unit { get; set; }
 }

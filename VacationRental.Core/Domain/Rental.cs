@@ -6,7 +6,7 @@ public class Rental
 
     public int PreparationTime { get; set; }
 
-    public int Units { get; set; }
-
     public virtual List<Booking> Bookings { get; set; }
+
+    public virtual List<Unit> Units { get; set; }
 }

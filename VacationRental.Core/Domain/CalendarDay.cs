@@ -6,5 +6,5 @@ public class CalendarDay
 
     public List<Booking>? Bookings { get; set; }
 
-    //public List<Unit>? PreparationTimes { get; set; }
+    public List<Unit>? PreparationTimes { get; set; }
 }

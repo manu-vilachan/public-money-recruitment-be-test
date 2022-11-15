@@ -15,5 +15,6 @@ public class VacationRentalDbContext : DbContext
     {
         modelBuilder.Entity<Rental>();
         modelBuilder.Entity<Booking>();
+        modelBuilder.Entity<Unit>();
     }
 }

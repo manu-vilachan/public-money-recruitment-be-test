@@ -8,6 +8,7 @@ public class RentalViewModelProfile : Profile
 {
     public RentalViewModelProfile()
     {
-        CreateMap<Rental, RentalViewModel>();
+        CreateMap<Rental, RentalViewModel>()
+            .ForMember(m => m.Units, exp => exp.MapFrom(r => r.Units.Count));
     }
 }

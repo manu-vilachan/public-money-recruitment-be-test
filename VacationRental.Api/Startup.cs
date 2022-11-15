@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using VacationRental.Api.Middleware;
 using VacationRental.Business;
 using VacationRental.Core.Contracts;
 using VacationRental.Data;
@@ -25,7 +26,10 @@ public class Startup
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-        services.AddMvcCore();
+
+        services.AddOptions<GlobalConfiguration>().Configure(options => Configuration.Bind(nameof(GlobalConfiguration), options));
+        
+        services.AddMvc();
 
         services.AddSwaggerGen(opts => opts.SwaggerDoc("v1", new OpenApiInfo { Title = "Vacation rental information", Version = "v1" }));
 
@@ -48,6 +52,10 @@ public class Startup
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
+        }
+        else
+        {
+            app.UseMiddleware<ApplicationExceptionHandlingMiddleware>();
         }
 
         app.UseRouting();

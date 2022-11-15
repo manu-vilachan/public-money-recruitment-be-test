@@ -4,26 +4,25 @@ using System;
 using System.Net.Http;
 using Xunit;
 
-namespace VacationRental.Api.Tests
+namespace VacationRental.Api.Tests;
+
+[CollectionDefinition("Integration")]
+public sealed class IntegrationFixture : IDisposable, ICollectionFixture<IntegrationFixture>
 {
-    [CollectionDefinition("Integration")]
-    public sealed class IntegrationFixture : IDisposable, ICollectionFixture<IntegrationFixture>
+    private readonly TestServer _server;
+
+    public HttpClient Client { get; }
+
+    public IntegrationFixture()
     {
-        private readonly TestServer _server;
+        _server = new TestServer(new WebHostBuilder().UseStartup<Startup>());
 
-        public HttpClient Client { get; }
+        Client = _server.CreateClient();
+    }
 
-        public IntegrationFixture()
-        {
-            _server = new TestServer(new WebHostBuilder().UseStartup<Startup>());
-
-            Client = _server.CreateClient();
-        }
-
-        public void Dispose()
-        {
-            Client.Dispose();
-            _server.Dispose();
-        }
+    public void Dispose()
+    {
+        Client.Dispose();
+        _server.Dispose();
     }
 }
