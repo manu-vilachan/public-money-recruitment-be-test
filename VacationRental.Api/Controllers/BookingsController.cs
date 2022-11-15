@@ -1,72 +1,51 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using VacationRental.Api.Models;
+using VacationRental.Core.Contracts;
 
-namespace VacationRental.Api.Controllers
+namespace VacationRental.Api.Controllers;
+
+[Route("api/v1/bookings")]
+[ApiController]
+public class BookingsController : ControllerBase
 {
-    [Route("api/v1/bookings")]
-    [ApiController]
-    public class BookingsController : ControllerBase
+    private readonly IBookingManager bookingManager;
+    private readonly IValidator<BookingBindingModel> bookingBindingValidator;
+    private readonly IMapper mapper;
+
+    public BookingsController(IBookingManager bookingManager, IValidator<BookingBindingModel> bookingBindingValidator, IMapper mapper)
     {
-        private readonly IDictionary<int, RentalViewModel> _rentals;
-        private readonly IDictionary<int, BookingViewModel> _bookings;
+        this.bookingManager = bookingManager;
+        this.bookingBindingValidator = bookingBindingValidator;
+        this.mapper = mapper;
+    }
 
-        public BookingsController(
-            IDictionary<int, RentalViewModel> rentals,
-            IDictionary<int, BookingViewModel> bookings)
-        {
-            _rentals = rentals;
-            _bookings = bookings;
-        }
+    [HttpGet]
+    [Route("{bookingId:int}")]
+    public async Task<BookingViewModel> Get(int bookingId)
+    {
+        var booking = await bookingManager.GetAsync(bookingId);
 
-        [HttpGet]
-        [Route("{bookingId:int}")]
-        public BookingViewModel Get(int bookingId)
-        {
-            if (!_bookings.ContainsKey(bookingId))
-                throw new ApplicationException("Booking not found");
+        if (booking == null)
+            throw new ApplicationException("Booking not found");
 
-            return _bookings[bookingId];
-        }
+        var kk = Problem();
 
-        [HttpPost]
-        public ResourceIdViewModel Post(BookingBindingModel model)
-        {
-            if (model.Nights <= 0)
-                throw new ApplicationException("Nigts must be positive");
-            if (!_rentals.ContainsKey(model.RentalId))
-                throw new ApplicationException("Rental not found");
+        return mapper.Map<BookingViewModel>(booking);
+    }
 
-            for (var i = 0; i < model.Nights; i++)
-            {
-                var count = 0;
-                foreach (var booking in _bookings.Values)
-                {
-                    if (booking.RentalId == model.RentalId
-                        && (booking.Start <= model.Start.Date && booking.Start.AddDays(booking.Nights) > model.Start.Date)
-                        || (booking.Start < model.Start.AddDays(model.Nights) && booking.Start.AddDays(booking.Nights) >= model.Start.AddDays(model.Nights))
-                        || (booking.Start > model.Start && booking.Start.AddDays(booking.Nights) < model.Start.AddDays(model.Nights)))
-                    {
-                        count++;
-                    }
-                }
-                if (count >= _rentals[model.RentalId].Units)
-                    throw new ApplicationException("Not available");
-            }
+    [HttpPost]
+    public async Task<ResourceIdViewModel> Post(BookingBindingModel model)
+    {
+        var validationResult = bookingBindingValidator.Validate(model);
+        if (!validationResult.IsValid)
+            throw new ApplicationException(validationResult.ToString());
 
+        var booking = await bookingManager.CreateAsync(model.RentalId, model.Start, model.Nights);
 
-            var key = new ResourceIdViewModel { Id = _bookings.Keys.Count + 1 };
-
-            _bookings.Add(key.Id, new BookingViewModel
-            {
-                Id = key.Id,
-                Nights = model.Nights,
-                RentalId = model.RentalId,
-                Start = model.Start.Date
-            });
-
-            return key;
-        }
+        return mapper.Map<ResourceIdViewModel>(booking);
     }
 }
